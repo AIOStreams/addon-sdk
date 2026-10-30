@@ -1,6 +1,6 @@
 {
   "name": "@aiostreams/addon-sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Build addons for AIOStreams and Stremio with every field of the AIOStreams addon protocol, on any runtime",
   "license": "MIT",
   "repository": {
