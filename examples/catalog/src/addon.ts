@@ -2,7 +2,6 @@ import {
   configureLogging,
   defineAddon,
   defineEnv,
-  notFound,
   type CatalogEntry,
   type Meta,
 } from '@aiostreams/addon-sdk';
@@ -146,7 +145,8 @@ const addon = defineAddon({
   },
 
   stream: ({ id }) => {
-    const film = films.find((f) => f.id === id) ?? notFound();
+    const film = films.find((f) => f.id === id);
+    if (!film) return { streams: [] };
     const filename = `${film.name}.${film.releaseInfo}.1080p.WEB-DL.x264-GROUP.mkv`;
     return {
       streams: [

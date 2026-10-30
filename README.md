@@ -20,7 +20,7 @@ Requires Node 22 or newer, Bun, Deno, or a Workers runtime. [zod](https://zod.de
 ## Quick start
 
 ```ts
-import { defineAddon, notFound } from '@aiostreams/addon-sdk';
+import { defineAddon } from '@aiostreams/addon-sdk';
 import { serve } from '@aiostreams/addon-sdk/node';
 
 const addon = defineAddon({
@@ -33,7 +33,7 @@ const addon = defineAddon({
     resources: ['stream'],
   },
   stream: ({ id }) => {
-    if (id !== 'tt1375666') notFound();
+    if (id !== 'tt1375666') return { streams: [] };
     return {
       streams: [
         {
@@ -73,6 +73,8 @@ Answers can carry cache hints, `cacheMaxAge`, `staleRevalidate` and `staleError`
 ### Errors
 
 Throw an `AddonError` to answer with a status and message. `notFound()` is a shorthand for a 404.
+
+When you have nothing for a title, answer an empty list such as `{ streams: [] }` instead. AIOStreams shows any error status in the stream list as a failed addon.
 
 ```ts
 import { AddonError } from '@aiostreams/addon-sdk';
