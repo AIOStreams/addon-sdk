@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/AIOStreams/addon-sdk/compare/v0.1.0...v0.1.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* build links and redirects from the mount path and forwarded host ([28b78da](https://github.com/AIOStreams/addon-sdk/commit/28b78da949f31069f2ce7b081cfeecbaa528a7ae))
+
 ## 0.1.0 (2026-10-30)
 
 
