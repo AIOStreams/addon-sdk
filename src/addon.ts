@@ -3,7 +3,7 @@ import { configReader, type ConfigDefinition } from './config.js';
 import type { Theme } from './configure-page.js';
 import { AddonDefinitionError } from './errors.js';
 import type { Logger } from './log.js';
-import { createRouter } from './router.js';
+import { createRouter, type HandleOptions } from './router.js';
 import type { ContentType } from './schemas/common.js';
 import {
   ManifestSchema,
@@ -138,7 +138,7 @@ export interface AddonDefinition<Config> {
 
 export interface Addon<Config> {
   /** `null` for a path that is not the addon's, so it can sit among other routes. */
-  handle(request: Request): Promise<Response | null>;
+  handle(request: Request, options?: HandleOptions): Promise<Response | null>;
   /** Answers every request, with a 404 for paths that are not the addon's. */
   fetch(request: Request): Promise<Response>;
   manifest(config?: Config): Manifest;

@@ -6,7 +6,7 @@ import {
 } from 'node:http';
 import type { Addon } from './addon.js';
 import { createLogger } from './log.js';
-import { MAX_BODY_BYTES } from './router.js';
+import { normaliseBase } from './router.js';
 
 const log = createLogger('server');
 
@@ -21,19 +21,50 @@ function header(req: IncomingMessage, name: string): string | undefined {
   return (Array.isArray(value) ? value[0] : value)?.split(',')[0].trim();
 }
 
-async function readBody(req: IncomingMessage): Promise<Buffer | null> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += (chunk as Buffer).length;
-    if (size > MAX_BODY_BYTES) return null;
-    chunks.push(chunk as Buffer);
-  }
-  return Buffer.concat(chunks);
+/**
+ * Read only when the addon reads it, so a request for another route keeps its
+ * body. A body parser that ran first leaves the body on `req.body`.
+ */
+function bodyOf(req: IncomingMessage): BodyInit | undefined {
+  if (req.method === 'GET' || req.method === 'HEAD') return undefined;
+  const parsed = (req as { body?: unknown }).body;
+  if (typeof parsed === 'string') return parsed;
+  if (parsed instanceof Uint8Array) return new Uint8Array(parsed);
+  if (parsed && typeof parsed === 'object') return JSON.stringify(parsed);
+  let chunks: AsyncIterator<Buffer> | undefined;
+  return new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        chunks ??= req[Symbol.asyncIterator]();
+        const { done, value } = await chunks.next();
+        if (done) controller.close();
+        else controller.enqueue(new Uint8Array(value));
+      },
+    },
+    { highWaterMark: 0 }
+  );
 }
 
-/** Behind a proxy, the forwarded host and scheme make `request.url` the address users see. */
-function toRequest(req: IncomingMessage, body: Buffer | undefined): Request {
+const trimmed = (path: string) => path.split('?')[0].replace(/\/+$/, '');
+
+/** A router that mounts a handler under a path strips it from `url` and keeps the full path in `originalUrl`. */
+function locate(req: IncomingMessage, basePath: string | undefined) {
+  const prefix = normaliseBase(header(req, 'x-forwarded-prefix'));
+  const original =
+    (req as { originalUrl?: string }).originalUrl ?? req.url ?? '/';
+  const full = trimmed(original);
+  const own = trimmed(req.url ?? '/');
+  const mount = full.endsWith(own)
+    ? full.slice(0, full.length - own.length)
+    : '';
+  return {
+    path: `${prefix}${original}`,
+    basePath: `${prefix}${basePath ?? mount}`,
+  };
+}
+
+/** Behind a proxy, the forwarded host, scheme and prefix make `request.url` the address users see. */
+function toRequest(req: IncomingMessage, path: string): Request {
   const encrypted = (req.socket as { encrypted?: boolean }).encrypted;
   const protocol =
     header(req, 'x-forwarded-proto') ?? (encrypted ? 'https' : 'http');
@@ -45,11 +76,12 @@ function toRequest(req: IncomingMessage, body: Buffer | undefined): Request {
     for (const item of Array.isArray(value) ? value : [value])
       headers.append(name, item);
   }
-  return new Request(`${protocol}://${host}${req.url ?? '/'}`, {
+  return new Request(`${protocol}://${host}${path}`, {
     method: req.method,
     headers,
-    body: body?.length ? new Uint8Array(body) : undefined,
-  });
+    body: bodyOf(req),
+    duplex: 'half',
+  } as RequestInit);
 }
 
 async function send(res: ServerResponse, response: Response, head: boolean) {
@@ -57,21 +89,20 @@ async function send(res: ServerResponse, response: Response, head: boolean) {
   res.end(head ? undefined : Buffer.from(await response.arrayBuffer()));
 }
 
+export interface NodeHandlerOptions {
+  /** The path a router serves the addon under, when the router doesn't keep it in `req.originalUrl`. */
+  basePath?: string;
+}
+
 /** For `node:http`, and as Express or Connect middleware: other paths go to `next`. */
-export function toNodeHandler(addon: Pick<Addon<any>, 'handle'>): NodeHandler {
+export function toNodeHandler(
+  addon: Pick<Addon<any>, 'handle'>,
+  options: NodeHandlerOptions = {}
+): NodeHandler {
   return (req, res, next) => {
     (async () => {
-      const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
-      const body = hasBody ? await readBody(req) : undefined;
-      if (body === null) {
-        await send(
-          res,
-          Response.json({ error: 'Body too large' }, { status: 413 }),
-          false
-        );
-        return;
-      }
-      const response = await addon.handle(toRequest(req, body));
+      const { path, basePath } = locate(req, options.basePath);
+      const response = await addon.handle(toRequest(req, path), { basePath });
       if (response) await send(res, response, req.method === 'HEAD');
       else if (next) next();
       else

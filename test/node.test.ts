@@ -64,3 +64,41 @@ test('as middleware, other paths go to the next handler and oversized bodies sto
     server.close();
   }
 });
+
+test('mounted by a router behind a proxy, links keep both paths, and other routes keep their bodies', async () => {
+  const handler = toNodeHandler(addon);
+  const server = createServer((req, res) => {
+    const echo = async () => {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      res.writeHead(200).end(body);
+    };
+    // What Express does for app.use('/addon', handler).
+    if (req.url?.startsWith('/addon')) {
+      Object.assign(req, { originalUrl: req.url });
+      req.url = req.url.slice('/addon'.length) || '/';
+    }
+    handler(req, res, echo);
+  });
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    const made = await fetch(`http://localhost:${port}/addon/configure`, {
+      method: 'POST',
+      headers: { 'x-forwarded-prefix': '/proxy' },
+      body: JSON.stringify({ values: {} }),
+    });
+    assert.equal(
+      (await made.json()).manifestUrl,
+      `http://localhost:${port}/proxy/addon/manifest.json`
+    );
+
+    const other = await fetch(`http://localhost:${port}/api/echo`, {
+      method: 'POST',
+      body: 'kept for the next route',
+    });
+    assert.equal(await other.text(), 'kept for the next route');
+  } finally {
+    server.close();
+  }
+});

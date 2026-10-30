@@ -94,6 +94,43 @@ describe('routing', () => {
     assert.equal((await call(addon, '/stream/movie/tt1.json')).status, 200);
   });
 
+  test('served under a base path, links and the redirect keep it whether or not the router stripped it', async () => {
+    const addon = defineAddon({
+      manifest: manifest(),
+      config: z.object({ key: z.string().default('x') }),
+      stream: async () => ({ streams: [] }),
+    });
+    const at = (path: string, basePath: string, init?: RequestInit) =>
+      addon.handle(new Request(`${BASE}${path}`, init), { basePath });
+    const make = { method: 'POST', body: JSON.stringify({ values: {} }) };
+
+    for (const [path, basePath] of [
+      ['/addon', '/addon'],
+      ['', '/addon/'],
+    ]) {
+      const root = await at(`${path}/`, basePath);
+      assert.equal(root?.headers.get('location'), '/addon/configure');
+      const made = await (await at(
+        `${path}/configure`,
+        basePath,
+        make
+      ))!.json();
+      assert.match(
+        made.manifestUrl,
+        /^http:\/\/addon\.test\/addon\/[\w-]+\/manifest\.json$/
+      );
+      const segment = new URL(made.manifestUrl).pathname.split('/')[2];
+      assert.equal(
+        (await at(`${path}/${segment}/stream/movie/tt1.json`, basePath))
+          ?.status,
+        200
+      );
+    }
+
+    const away = await at('/', '//elsewhere.example');
+    assert.equal(away?.headers.get('location'), '/elsewhere.example/configure');
+  });
+
   test('every answer, errors included, can be read cross-origin', async () => {
     const addon = defineAddon({
       manifest: manifest(),

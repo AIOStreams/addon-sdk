@@ -188,11 +188,47 @@ async function resolveLazy<T>(
 }
 
 /** The configuration segment can hold credentials, so it is never logged. */
-function loggedPath(url: URL): string {
-  const segments = url.pathname.split('/').filter(Boolean);
+function loggedPath(pathname: string): string {
+  const segments = pathname.split('/').filter(Boolean);
   if (segments.length > 1 && !ROUTE_HEADS.has(segments[0]))
     segments[0] = '{config}';
   return `/${segments.join('/')}`;
+}
+
+/** Rebuilt from its segments, so a value such as `//host` can't make a redirect leave the site. */
+export function normaliseBase(path: string | undefined): string {
+  const segments = (path ?? '').split('/').filter(Boolean);
+  if (segments.some((s) => s.includes('\\') || s === '.' || s === '..'))
+    return '';
+  return segments.length ? `/${segments.join('/')}` : '';
+}
+
+/** Some routers strip the base path before the addon sees the request, others don't. */
+function withoutBase(pathname: string, base: string): string {
+  if (!base) return pathname;
+  if (pathname === base) return '/';
+  return pathname.startsWith(`${base}/`)
+    ? pathname.slice(base.length)
+    : pathname;
+}
+
+/** Some servers put a placeholder host in `request.url` and the address the client used in these headers. */
+function publicOrigin(request: Request, url: URL): string {
+  const first = (name: string) =>
+    request.headers.get(name)?.split(',')[0].trim() || undefined;
+  const host = first('x-forwarded-host');
+  const proto = first('x-forwarded-proto') ?? url.protocol.slice(0, -1);
+  if (!host || (proto !== 'http' && proto !== 'https')) return url.origin;
+  try {
+    return new URL(`${proto}://${host}`).origin;
+  } catch {
+    return url.origin;
+  }
+}
+
+export interface HandleOptions {
+  /** The path the addon is served under, such as `/addon`, when a router or proxy put it there. */
+  basePath?: string;
 }
 
 /** A bounded set, oldest entries leaving first. */
@@ -259,9 +295,12 @@ export function createRouter({
   async function route(
     request: Request,
     url: URL,
+    path: string,
+    basePath: string,
     log: Logger
   ): Promise<Response | null> {
-    let segments = url.pathname.split('/').filter(Boolean);
+    const site = `${publicOrigin(request, url)}${basePath}`;
+    let segments = path.split('/').filter(Boolean);
     let configSegment: string | undefined;
     if (segments.length > 1 && !ROUTE_HEADS.has(segments[0])) {
       if (!config) return null;
@@ -272,7 +311,7 @@ export function createRouter({
     if (!head && !configSegment && hasConfigurePage()) {
       return new Response(null, {
         status: 302,
-        headers: { ...CORS, location: '/configure' },
+        headers: { ...CORS, location: `${basePath}/configure` },
       });
     }
     if (!head || !ROUTE_HEADS.has(head)) return null;
@@ -313,7 +352,7 @@ export function createRouter({
           config: value,
           request,
           log,
-          manifestUrl: (next) => manifestUrl(url.origin, next),
+          manifestUrl: (next) => manifestUrl(site, next),
         });
         return typeof page === 'string' ? html(page) : page;
       }
@@ -343,7 +382,7 @@ export function createRouter({
         );
       }
       if (method !== 'POST') throw new AddonError(405, 'Method not allowed');
-      if (!config) return json({ manifestUrl: await manifestUrl(url.origin) });
+      if (!config) return json({ manifestUrl: await manifestUrl(site) });
       let body: { values?: unknown };
       try {
         body = JSON.parse(await readBody(request));
@@ -365,7 +404,7 @@ export function createRouter({
         );
       }
       return json({
-        manifestUrl: await manifestUrl(url.origin, checked.value),
+        manifestUrl: await manifestUrl(site, checked.value),
       });
     }
 
@@ -512,19 +551,24 @@ export function createRouter({
     return withCacheHints(result);
   }
 
-  return async function handle(request: Request): Promise<Response | null> {
+  return async function handle(
+    request: Request,
+    options: HandleOptions = {}
+  ): Promise<Response | null> {
     const started = Date.now();
     const url = new URL(request.url);
+    const base = normaliseBase(options.basePath);
+    const path = withoutBase(url.pathname, base);
     const log = logger.child({ rid: crypto.randomUUID().slice(0, 8) });
     const fields = (status: number) => ({
       method: request.method,
-      path: loggedPath(url),
+      path: `${base}${loggedPath(path)}`,
       status,
       ms: Date.now() - started,
     });
     let response: Response | null;
     try {
-      response = await route(request, url, log);
+      response = await route(request, url, path, base, log);
     } catch (err) {
       if (!(err instanceof AddonError)) {
         log.error({ ...fields(500), err }, 'a handler failed');

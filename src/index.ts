@@ -38,5 +38,6 @@ export {
   notFound,
   ResponseValidationError,
 } from './errors.js';
+export type { HandleOptions } from './router.js';
 export * from './schemas/index.js';
 export type { StandardSchemaV1 } from './standard-schema.js';
