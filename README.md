@@ -333,7 +333,55 @@ import { serve } from '@aiostreams/addon-sdk/node';
 await serve(addon); // PORT, or 7000; { port, hostname } to choose
 ```
 
-Behind a proxy, the forwarded host and scheme are used, so install links carry the address users see.
+Behind a proxy, the forwarded host and scheme are used, so install links carry the address users see. Free plans that put an idle service to sleep, such as Render's free web services, take longer to wake than AIOStreams waits for an addon.
+
+**Docker**, with `npm run build` compiling to `dist/`:
+
+```dockerfile
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build && npm prune --omit=dev
+
+FROM node:24-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+USER node
+EXPOSE 7000
+HEALTHCHECK CMD wget -qO /dev/null http://127.0.0.1:${PORT:-7000}/manifest.json || exit 1
+CMD ["node", "dist/addon.js"]
+```
+
+```yaml
+# compose.yaml
+services:
+  addon:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      - 7000:7000
+    env_file:
+      - path: .env
+        required: false
+```
+
+```
+# .dockerignore
+node_modules
+dist
+.env
+.git
+```
+
+- `init: true` lets the container stop straight away. Without it, Node runs as the container's first process, ignores the stop signal, and Docker waits 10 seconds before killing it.
+- Variables in `.env` reach `defineEnv` through `env_file`. The file itself stays out of the image.
+- If AIOStreams runs on the same Docker network, it reaches the addon at `http://addon:7000`. Put that host in place of the one in the link the configure page copies.
 
 **Express or Connect**, beside your other routes:
 
