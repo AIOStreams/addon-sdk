@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v6
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: pnpm install --frozen-lockfile
+      # The examples import the built package.
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - run: pnpm test

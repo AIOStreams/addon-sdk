@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.tgz
+examples/*/data/
+src/configure-ui.generated.ts
+.wrangler/

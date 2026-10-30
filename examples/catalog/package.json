@@ -1,0 +1,12 @@
+{
+  "name": "@aiostreams/addon-sdk-example-catalog",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/addon.ts"
+  },
+  "dependencies": {
+    "@aiostreams/addon-sdk": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

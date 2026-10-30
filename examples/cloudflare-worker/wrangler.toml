@@ -1,0 +1,8 @@
+name = "addon-sdk-example"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+LOG_LEVEL = "info"
+
+# wrangler secret put CONFIG_SECRET

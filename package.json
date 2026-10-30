@@ -1,0 +1,62 @@
+{
+  "name": "@aiostreams/addon-sdk",
+  "version": "0.0.0",
+  "description": "Build addons for AIOStreams and Stremio with every field of the AIOStreams addon protocol, on any runtime",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AIOStreams/addon-sdk.git"
+  },
+  "keywords": [
+    "stremio",
+    "stremio-addon",
+    "aiostreams",
+    "addon-sdk"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build:ui": "node scripts/build-ui.mjs",
+    "build": "node scripts/build-ui.mjs && tsc -p tsconfig.build.json",
+    "prepack": "pnpm build",
+    "typecheck": "node scripts/build-ui.mjs && tsc -p tsconfig.json && tsc -p ui/tsconfig.json",
+    "test": "node scripts/build-ui.mjs && node --import tsx --test \"test/**/*.test.ts\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
+    "preact": "^10.29.8",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@11.0.8+sha512.4c4097e1dd2d42372c4e7fa5a791ff28fc75a484c7ac192e64b1df0fdef17594ba982f9b4fed9adfb3c757846f565b799b2763fb3733d1de1bcb82cf46684912",
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "homepage": "https://github.com/AIOStreams/addon-sdk#readme"
+}
