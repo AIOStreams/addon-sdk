@@ -383,13 +383,6 @@ dist
 - Variables in `.env` reach `defineEnv` through `env_file`. The file itself stays out of the image.
 - If AIOStreams runs on the same Docker network, it reaches the addon at `http://addon:7000`. Put that host in place of the one in the link the configure page copies.
 
-**Express or Connect**, beside your other routes:
-
-```ts
-import { toNodeHandler } from '@aiostreams/addon-sdk/node';
-app.use(toNodeHandler(addon)); // other paths go to next()
-```
-
 **Bun**: `Bun.serve({ port: 7000, fetch: addon.fetch });`
 
 **Deno**: `Deno.serve({ port: 7000 }, addon.fetch);`
@@ -409,7 +402,86 @@ compatibility_date = "2026-10-01"
 
 Set secrets with `wrangler secret put CONFIG_SECRET`, and read them through `defineEnv` with `source: bindings` as above.
 
-**Other platforms**: anything that hands you a `Request` and takes a `Response` back (Vercel and Netlify functions, Hono, Elysia, …) can call `addon.fetch` or `addon.handle`.
+### In a framework, or under a path
+
+The addon can sit beside your app's own routes, at the root or under a path such as `/addon`. Install links, the redirect from `/` and `manifestUrl()` keep that path, and requests for your other routes keep their bodies.
+
+Anything that hands you a `Request` calls `addon.handle(request, { basePath })`. It answers `null` for paths that aren't the addon's, and `basePath` is left out at the root:
+
+**Hono**
+
+```ts
+app.use(
+  '/addon/*',
+  async (c, next) =>
+    (await addon.handle(c.req.raw, { basePath: '/addon' })) ?? next()
+);
+```
+
+**Next.js**, as `app/addon/[[...path]]/route.ts`:
+
+```ts
+const handler = async (request: Request) =>
+  (await addon.handle(request, { basePath: '/addon' })) ??
+  new Response('Not found', { status: 404 });
+
+export { handler as GET, handler as HEAD, handler as POST, handler as OPTIONS };
+```
+
+**Elysia**
+
+```ts
+app.mount(
+  '/addon',
+  async (request) =>
+    (await addon.handle(request, { basePath: '/addon' })) ??
+    new Response('Not found', { status: 404 })
+);
+```
+
+Node frameworks use `toNodeHandler`. Express and Connect report the path they mount it at:
+
+**Express or Connect**
+
+```ts
+import { toNodeHandler } from '@aiostreams/addon-sdk/node';
+app.use('/addon', toNodeHandler(addon)); // other paths go to next()
+```
+
+**Fastify** reads request bodies itself, so the addon's routes get a parser that leaves them alone:
+
+```ts
+const handler = toNodeHandler(addon, { basePath: '/addon' });
+app.register(
+  async (scope) => {
+    scope.removeAllContentTypeParsers();
+    scope.addContentTypeParser('*', (_request, _payload, done) => done(null));
+    for (const url of ['/', '/*']) {
+      scope.all(url, (request, reply) => {
+        reply.hijack();
+        handler(request.raw, reply.raw);
+      });
+    }
+  },
+  { prefix: '/addon' }
+);
+```
+
+**Koa**
+
+```ts
+import { finished } from 'node:stream/promises';
+
+const handler = toNodeHandler(addon, { basePath: '/addon' });
+app.use(async (ctx, next) => {
+  if (ctx.path !== '/addon' && !ctx.path.startsWith('/addon/')) return next();
+  ctx.respond = false;
+  handler(ctx.req, ctx.res);
+  await finished(ctx.res);
+});
+```
+
+Behind a reverse proxy that serves the addon under a path and strips it, `serve()` and `toNodeHandler` read the path from `X-Forwarded-Prefix`, which Traefik's StripPrefix sends.
 
 ## Examples
 
