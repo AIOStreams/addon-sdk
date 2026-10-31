@@ -17,6 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { render, type ComponentChildren } from 'preact';
 import { useRef, useState } from 'preact/hooks';
+import { copyToClipboard } from './clipboard';
 import { parseBlocks, parseInline, plain, type Inline } from './markdown';
 
 type Schema = Record<string, any>;
@@ -1154,9 +1155,12 @@ function App() {
       if (action === 'stremio') {
         location.href = url.replace(/^https?:/, 'stremio:');
       } else {
-        await navigator.clipboard.writeText(url).catch(() => undefined);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
+        await copyToClipboard(url, {
+          onSuccess: () => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1800);
+          },
+        });
       }
     } finally {
       setBusy(null);

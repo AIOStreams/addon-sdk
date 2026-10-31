@@ -138,7 +138,7 @@ Lists reorder by dragging the handle or with the arrow buttons, by mouse, touch 
 
 Mark credentials with `writeOnly: true`. Their values are never sent back to the browser. When a user reconfigures, a secret field shows as saved, and leaving it blank keeps the saved value. Each entry of a reordered list keeps its own secret.
 
-The page takes its name, logo and description from your manifest, and shows its `background` image behind the header. Set an accent colour with `theme: { accent: '#2563eb' }`. The page's main button copies the install link, ready to paste into AIOStreams. An **Install in Stremio** button is added when the addon serves something Stremio can use, which is any resource but watch state.
+The page takes its name, logo and description from your manifest, and shows its `background` image behind the header. Set an accent colour with `theme: { accent: '#2563eb' }`. The page's main button copies the install link, ready to paste into AIOStreams. Where the browser can't copy, as on an addon opened over plain `http` by its LAN address, the link is shown to copy by hand. An **Install in Stremio** button is added when the addon serves something Stremio can use, which is any resource but watch state.
 
 Titles, descriptions and the manifest's description can use basic Markdown, the same that AIOStreams renders in addon text:
 
