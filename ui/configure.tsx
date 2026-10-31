@@ -17,6 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { render, type ComponentChildren } from 'preact';
 import { useRef, useState } from 'preact/hooks';
+import { parseBlocks, parseInline, plain, type Inline } from './markdown';
 
 type Schema = Record<string, any>;
 type Values = Record<string, unknown>;
@@ -232,6 +233,93 @@ function Icon({ name }: { name: IconName }) {
   );
 }
 
+function Inlines({ nodes }: { nodes: Inline[] }) {
+  return (
+    <>
+      {nodes.map((node, i) => {
+        if (typeof node === 'string') return node;
+        switch (node.type) {
+          case 'br':
+            return <br key={i} />;
+          case 'code':
+            return <code key={i}>{node.text}</code>;
+          case 'image':
+            return (
+              <img key={i} class="md-image" src={node.src} alt={node.alt} />
+            );
+          case 'link':
+            return (
+              <a
+                key={i}
+                href={node.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Inlines nodes={node.children} />
+              </a>
+            );
+          default: {
+            const Tag = node.type;
+            return (
+              <Tag key={i}>
+                <Inlines nodes={node.children} />
+              </Tag>
+            );
+          }
+        }
+      })}
+    </>
+  );
+}
+
+const Rich = ({ text }: { text: string }) => (
+  <Inlines nodes={parseInline(text)} />
+);
+
+function Markdown({
+  text,
+  class: className,
+  id,
+}: {
+  text: string;
+  class?: string;
+  id?: string;
+}) {
+  const headings = ['h4', 'h5', 'h6'] as const;
+  return (
+    <div class={className ? `md ${className}` : 'md'} id={id}>
+      {parseBlocks(text).map((block, i) => {
+        if (block.type === 'paragraph')
+          return (
+            <p key={i}>
+              <Inlines nodes={block.children} />
+            </p>
+          );
+        if (block.type === 'heading') {
+          const Heading = headings[block.level - 1];
+          return (
+            <Heading key={i}>
+              <Inlines nodes={block.children} />
+            </Heading>
+          );
+        }
+        const items = block.items.map((item, j) => (
+          <li key={j}>
+            <Inlines nodes={item} />
+          </li>
+        ));
+        return block.ordered ? (
+          <ol key={i} start={block.start === 1 ? undefined : block.start}>
+            {items}
+          </ol>
+        ) : (
+          <ul key={i}>{items}</ul>
+        );
+      })}
+    </div>
+  );
+}
+
 interface FieldProps {
   name: string;
   schema: Schema;
@@ -269,14 +357,18 @@ function Label({
   return (
     <div class="field-head">
       <label class="field-label" id={`${id}-label`} for={id}>
-        {schema.title ?? humanise(name)}
+        <span>
+          <Rich text={schema.title ?? humanise(name)} />
+        </span>
         {optional && <span class="pill">Optional</span>}
         {extra}
       </label>
       {schema.description && (
-        <p class="field-hint" id={`${id}-hint`}>
-          {schema.description}
-        </p>
+        <Markdown
+          class="field-hint"
+          id={`${id}-hint`}
+          text={schema.description}
+        />
       )}
     </div>
   );
@@ -406,11 +498,13 @@ function VariantFields({
             (o) => o.properties[variants.key].const
           )}
           label={(constant) =>
-            variantLabel(
-              variants,
-              variants.options.find(
-                (o) => o.properties[variants.key].const === constant
-              )!
+            plain(
+              variantLabel(
+                variants,
+                variants.options.find(
+                  (o) => o.properties[variants.key].const === constant
+                )!
+              )
             )
           }
           value={option.properties[variants.key].const}
@@ -525,7 +619,7 @@ function SortableList({
     if (over && active.id !== over.id)
       move(keys.indexOf(String(active.id)), keys.indexOf(String(over.id)));
   };
-  const name = singular(title).toLowerCase();
+  const name = singular(plain(title)).toLowerCase();
   return (
     <div class="list">
       {items.length > 0 && (
@@ -611,9 +705,11 @@ function Field(props: FieldProps) {
     return (
       <section class="group" aria-labelledby={`${id}-label`}>
         <h3 class="group-title" id={`${id}-label`}>
-          {title}
+          <Rich text={title} />
         </h3>
-        {schema.description && <p class="field-hint">{schema.description}</p>}
+        {schema.description && (
+          <Markdown class="field-hint" text={schema.description} />
+        )}
         {variants ? (
           <VariantFields variants={variants} props={props} />
         ) : (
@@ -732,7 +828,7 @@ function Field(props: FieldProps) {
                 value={item === undefined ? '' : String(item)}
                 spellcheck={false}
                 placeholder={items.format === 'uri' ? 'https://' : undefined}
-                aria-label={`${singular(title)} ${index + 1}`}
+                aria-label={`${singular(plain(title))} ${index + 1}`}
                 onInput={(e) => {
                   const raw = (e.target as HTMLInputElement).value;
                   onChange(
@@ -1110,7 +1206,7 @@ function App() {
               )}
             </dl>
             {manifest.description && (
-              <p class="about">{manifest.description}</p>
+              <Markdown class="about" text={manifest.description} />
             )}
           </div>
         </div>

@@ -140,6 +140,19 @@ Mark credentials with `writeOnly: true`. Their values are never sent back to the
 
 The page takes its name, logo and description from your manifest, and shows its `background` image behind the header. Set an accent colour with `theme: { accent: '#2563eb' }`. The page's main button copies the install link, ready to paste into AIOStreams. An **Install in Stremio** button is added when the addon serves something Stremio can use, which is any resource but watch state.
 
+Titles, descriptions and the manifest's description can use basic Markdown, the same that AIOStreams renders in addon text:
+
+| Markdown                                        | Shows                                          |
+| ----------------------------------------------- | ---------------------------------------------- |
+| `**bold**`, `*italic*`, `~~struck~~`            | emphasis; `_` works too, but not inside a word |
+| `` `code` ``                                    | code                                           |
+| `[text](https://…)`, `<https://…>`, `https://…` | a link, opened in a new tab                    |
+| `![alt](https://…)`                             | an image, sized for logos and badges           |
+| `- item`, `* item`, `1. item`                   | a list                                         |
+| `# Heading` to `### Heading`                    | a heading, in descriptions                     |
+
+A newline is a line break, and a blank line starts a new paragraph. Only `http`, `https` and `mailto` addresses become links. Text is rendered as nodes, never as HTML, so nothing in it can run a script.
+
 To serve your own page instead, return HTML or a `Response` from `configure`. It is given `manifestUrl(config)` to build install links. `configure: false` serves no page and leaves `/` alone.
 
 ```ts
