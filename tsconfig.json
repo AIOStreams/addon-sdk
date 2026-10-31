@@ -10,5 +10,11 @@
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "test", "examples/catalog/src", "examples/tracker/src"]
+  "include": [
+    "src",
+    "test",
+    "examples/catalog/src",
+    "examples/tracker/src",
+    "examples/tmdb/src"
+  ]
 }

@@ -505,6 +505,7 @@ Behind a reverse proxy that serves the addon under a path and strips it, `serve(
 ## Examples
 
 - [`examples/catalog`](examples/catalog): catalogs, extended metadata, people, similar titles, streams and subtitles, with a generated configure page.
+- [`examples/tmdb`](examples/tmdb): catalogs and full metadata from the TMDB API, with each user's API key kept secret on the configure page and a manifest listing only the catalogs they picked.
 - [`examples/tracker`](examples/tracker): a watch history tracker with `watch_state` push and pull, plus the client's player and library events.
 - [`examples/cloudflare-worker`](examples/cloudflare-worker): an encrypted configuration and a custom configure page, on Workers.
 
