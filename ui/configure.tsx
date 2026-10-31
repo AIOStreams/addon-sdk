@@ -36,6 +36,7 @@ interface PageData {
   values: Values | undefined;
   kept: string[][];
   editing: boolean;
+  footer?: string;
 }
 
 const data: PageData = JSON.parse(
@@ -1290,6 +1291,11 @@ function App() {
           </p>
         </div>
       </main>
+      {data.footer && (
+        <footer class="foot">
+          <Markdown text={data.footer} />
+        </footer>
+      )}
     </div>
   );
 }

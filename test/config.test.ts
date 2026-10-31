@@ -189,6 +189,22 @@ describe('generated configure page', () => {
     assert.equal(data.values.note, hostile);
   });
 
+  test('the footer reaches the page', async () => {
+    const footer = 'Data from [TMDB](https://www.themoviedb.org)';
+    const page = defineAddon({
+      manifest: manifest(),
+      stream: async () => ({ streams: [] }),
+      footer,
+    });
+    const body = await (await call(page, '/configure')).text();
+    const data = JSON.parse(
+      body
+        .split('<script type="application/json" id="data">')[1]
+        .split('</script>')[0]
+    );
+    assert.equal(data.footer, footer);
+  });
+
   test('in a list, a moved entry keeps its own saved secret, and a changed one keeps none', async () => {
     const Services = z.object({
       services: z.array(

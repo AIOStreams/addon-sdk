@@ -18,6 +18,7 @@ interface PageOptions {
   kept: string[][];
   editing: boolean;
   theme?: Theme;
+  footer?: string;
 }
 
 const embed = (value: unknown) =>
@@ -47,6 +48,7 @@ export function configurePage({
   kept,
   editing,
   theme,
+  footer,
 }: PageOptions): string {
   const accent = theme?.accent ?? '#d9381e';
   const accentText = theme?.accentText ?? textOn(accent);
@@ -66,6 +68,7 @@ export function configurePage({
     values,
     kept,
     editing,
+    footer,
   };
   const icon = /^https?:/.test(manifest.logo ?? '')
     ? `<link rel="icon" href="${attribute(manifest.logo!)}">`

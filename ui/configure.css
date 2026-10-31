@@ -662,6 +662,24 @@ code {
   max-height: 40px;
   vertical-align: middle;
 }
+.foot {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 40px 40px;
+  color: var(--faint);
+  font-size: 13px;
+}
+.foot .md-image {
+  max-height: 20px;
+}
+.panel:has(+ .foot) {
+  padding-bottom: 32px;
+}
+@media (max-width: 860px) {
+  .foot {
+    padding: 0 20px 32px;
+  }
+}
 
 /* Lists: rows that can be dragged by the handle, or moved with the arrows. */
 .list {

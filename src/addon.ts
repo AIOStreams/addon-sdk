@@ -132,6 +132,8 @@ export interface AddonDefinition<Config> {
       }) => Awaitable<Response | string>);
   /** Colours the generated configure page. */
   theme?: Theme;
+  /** Markdown at the foot of the generated configure page. */
+  footer?: string;
   /** Checks responses against what clients accept: `warn` reports problems, `strict` fails the request. */
   validation?: 'warn' | 'strict' | 'off';
 }

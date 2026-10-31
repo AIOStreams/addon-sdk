@@ -378,6 +378,7 @@ export function createRouter({
             kept: shown.kept,
             editing: current !== undefined,
             theme: definition.theme,
+            footer: definition.footer,
           })
         );
       }

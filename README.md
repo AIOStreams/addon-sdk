@@ -153,6 +153,12 @@ Titles, descriptions and the manifest's description can use basic Markdown, the 
 
 A newline is a line break, and a blank line starts a new paragraph. Only `http`, `https` and `mailto` addresses become links. Text is rendered as nodes, never as HTML, so nothing in it can run a script.
 
+`footer` puts Markdown at the foot of the page, for an attribution or links to your docs:
+
+```ts
+footer: '[![TMDB](https://example.com/tmdb.svg)](https://www.themoviedb.org) Metadata from TMDB.',
+```
+
 To serve your own page instead, return HTML or a `Response` from `configure`. It is given `manifestUrl(config)` to build install links. `configure: false` serves no page and leaves `/` alone.
 
 ```ts
