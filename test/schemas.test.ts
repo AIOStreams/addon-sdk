@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { StreamSchema, type Stream } from '../src/index.js';
+import { MetaSchema, StreamSchema, type Stream } from '../src/index.js';
 
 const problems = (stream: unknown) =>
   StreamSchema.safeParse(stream).error?.issues.map(
@@ -38,4 +38,12 @@ test('a stream is checked as the source it names, the way clients pick one', () 
     ['servers: Too small: expected array to have >=1 items']
   );
   assert.match(problems({ name: 'only a name' })[0], /a stream needs a source/);
+});
+
+test('an id the types allow to be undefined is accepted, as JSON leaves it out', () => {
+  const meta = { id: 'tmdb:1', type: 'movie', name: 'A' };
+  assert.ok(
+    MetaSchema.safeParse({ ...meta, ids: { tmdb: 1, imdb: undefined } }).success
+  );
+  assert.ok(!MetaSchema.safeParse({ ...meta, ids: { imdb: '' } }).success);
 });

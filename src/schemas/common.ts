@@ -24,7 +24,7 @@ export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const ProviderIdsSchema = z.partialRecord(
   z.enum(PROVIDER_IDS),
-  z.union([z.string().min(1), z.number()])
+  z.union([z.string().min(1), z.number()]).optional()
 );
 
 export type ProviderIds = z.input<typeof ProviderIdsSchema>;
