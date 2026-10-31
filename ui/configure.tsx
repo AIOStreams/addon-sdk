@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { render, type ComponentChildren } from 'preact';
-import { useRef, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { copyToClipboard } from './clipboard';
 import { parseBlocks, parseInline, plain, type Inline } from './markdown';
 
@@ -377,12 +377,16 @@ function Label({
 }
 
 function Problem({ id, message }: { id: string; message?: string }) {
-  return message ? (
-    <p class="field-error" id={`${id}-error`} role="alert">
-      <Icon name="alert" />
-      {message}
-    </p>
-  ) : null;
+  return (
+    <Reveal open={!!message}>
+      {message && (
+        <p class="field-error" id={`${id}-error`} role="alert">
+          <Icon name="alert" />
+          {message}
+        </p>
+      )}
+    </Reveal>
+  );
 }
 
 function Choice({
@@ -1068,12 +1072,71 @@ function placeIssue(path: string[]): { key: string; where: string } | null {
   return null;
 }
 
+const stillMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+function Reveal({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: ComponentChildren;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const height = useRef(0);
+  const motion = useRef<Animation>();
+  const shown = useRef<ComponentChildren>(null);
+  const [, settle] = useState(0);
+  if (open) shown.current = children;
+
+  useLayoutEffect(() => {
+    const el = box.current!;
+    const to = open ? (el.firstElementChild as HTMLElement).offsetHeight : 0;
+    const from =
+      motion.current?.playState === 'running'
+        ? el.getBoundingClientRect().height
+        : height.current;
+    height.current = to;
+    if (from === to) return;
+    motion.current?.cancel();
+    const done = () => {
+      if (open) return;
+      shown.current = null;
+      settle((n) => n + 1);
+    };
+    if (stillMotion.matches) return done();
+    motion.current = el.animate(
+      [
+        { height: `${from}px`, opacity: from ? 1 : 0 },
+        { height: `${to}px`, opacity: to ? 1 : 0 },
+      ],
+      { duration: 200, easing: 'ease-out' }
+    );
+    motion.current.onfinish = done;
+  });
+
+  return (
+    <div
+      ref={box}
+      class={open ? 'reveal' : 'reveal closed'}
+      aria-hidden={open ? undefined : true}
+    >
+      <div>{shown.current}</div>
+    </div>
+  );
+}
+
 function App() {
   const [values, setValues] = useState(
     () => initial(root, data.values) as Values
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [problem, setProblem] = useState('');
+  // A new key per failure, so screen readers announce it again.
+  const [attempt, setAttempt] = useState(0);
+  const fail = (message: string) => {
+    setProblem(message);
+    setAttempt((n) => n + 1);
+  };
   const [busy, setBusy] = useState<'copy' | 'stremio' | null>(null);
   const [link, setLink] = useState('');
   const [copied, setCopied] = useState(false);
@@ -1102,7 +1165,6 @@ function App() {
   };
 
   async function create(): Promise<string | undefined> {
-    setProblem('');
     const response = await fetch(location.pathname, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -1110,9 +1172,7 @@ function App() {
     }).catch(() => undefined);
     const body = await response?.json().catch(() => ({}));
     if (!response) {
-      setProblem(
-        'Could not reach the addon. Check your connection and try again.'
-      );
+      fail('Could not reach the addon. Check your connection and try again.');
       return;
     }
     if (!response.ok) {
@@ -1127,7 +1187,7 @@ function App() {
         else general.push(issue.message);
       }
       setErrors(found);
-      setProblem(
+      fail(
         general.join('. ') ||
           (Object.keys(found).length
             ? 'A few fields need another look.'
@@ -1143,6 +1203,7 @@ function App() {
       return;
     }
     setErrors({});
+    setProblem('');
     setLink(body.manifestUrl);
     return body.manifestUrl;
   }
@@ -1253,17 +1314,14 @@ function App() {
           </div>
         </form>
         <div class="actions">
-          {problem && (
-            <p class="form-error" role="alert">
-              <Icon name="alert" />
-              {problem}
-            </p>
-          )}
-          {link && (
-            <p class="link" title={link}>
-              {link}
-            </p>
-          )}
+          <Reveal open={!!problem}>
+            {problem && (
+              <p class="form-error" role="alert" key={attempt}>
+                <Icon name="alert" />
+                {problem}
+              </p>
+            )}
+          </Reveal>
           <div class="buttons">
             <button
               type="submit"
