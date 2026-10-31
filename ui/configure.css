@@ -543,6 +543,12 @@ h1 {
 .group .fields {
   gap: 20px;
 }
+.group-title:has(+ .field-hint) {
+  margin-bottom: 4px;
+}
+.group > .field-hint {
+  margin-bottom: 18px;
+}
 .field-error,
 .form-error {
   font-size: 14px;
