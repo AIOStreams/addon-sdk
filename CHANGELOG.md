@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/AIOStreams/addon-sdk/compare/v0.2.0...v0.3.0) (2026-11-20)
+
+
+### Features
+
+* add the collection layout, merge and backgroundVideo fields ([7ec4989](https://github.com/AIOStreams/addon-sdk/commit/7ec49897e13aedb0a3a3d402adbb766a9c99a713))
+* add the Live TV guide and catch-up fields ([19e2eeb](https://github.com/AIOStreams/addon-sdk/commit/19e2eebe45e928466220c5ce54533bad99db4423))
+
 ## [0.2.0](https://github.com/AIOStreams/addon-sdk/compare/v0.1.1...v0.2.0) (2026-10-31)
 
 
