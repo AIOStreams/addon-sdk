@@ -55,18 +55,18 @@ Every handler and response is typed from the protocol schemas, so your editor li
 
 ## Handlers
 
-| Handler        | Path                                            | Arguments besides `config`, `request`, `log`      | Answer                          |
-| -------------- | ----------------------------------------------- | ------------------------------------------------- | ------------------------------- |
-| `catalog`      | `/catalog/{type}/{id}/{extra}.json`             | `type`, `id`, `extra`, `rawExtra`                 | `{ metas }`                     |
-| `meta`         | `/meta/{type}/{id}.json`                        | `type`, `id`                                      | `{ meta }`, or `null` for a 404 |
-| `stream`       | `/stream/{type}/{id}.json`                      | `type`, `id`                                      | `{ streams }`                   |
-| `subtitles`    | `/subtitles/{type}/{id}/{extra}.json`           | `type`, `id`, `extra`                             | `{ subtitles }`                 |
-| `addonCatalog` | `/addon_catalog/{type}/{id}.json`               | `type`, `id`                                      | `{ addons }`                    |
-| `player`       | `/player/{type}/{id}/{extra}.json`              | `type`, `id`, `action`, `currentTime`, `duration` | nothing                         |
-| `library`      | `/library/{type}/{id}/{extra}.json`             | `type`, `id`, `action`, `videoIds`                | nothing                         |
-| `watchState`   | `/watch_state/push/…`, `/watch_state/pull.json` | see [Watch state](#watch-state)                   |                                 |
+| Handler        | Path                                            | Arguments besides `config`, `request`, `log`      | Answer                                                   |
+| -------------- | ----------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
+| `catalog`      | `/catalog/{type}/{id}/{extra}.json`             | `type`, `id`, `extra`, `rawExtra`                 | `{ metas }`, or `{ metasDetailed }` for a guide's `date` |
+| `meta`         | `/meta/{type}/{id}.json`                        | `type`, `id`                                      | `{ meta }`, or `null` for a 404                          |
+| `stream`       | `/stream/{type}/{id}.json`                      | `type`, `id`                                      | `{ streams }`                                            |
+| `subtitles`    | `/subtitles/{type}/{id}/{extra}.json`           | `type`, `id`, `extra`                             | `{ subtitles }`                                          |
+| `addonCatalog` | `/addon_catalog/{type}/{id}.json`               | `type`, `id`                                      | `{ addons }`                                             |
+| `player`       | `/player/{type}/{id}/{extra}.json`              | `type`, `id`, `action`, `currentTime`, `duration` | nothing                                                  |
+| `library`      | `/library/{type}/{id}/{extra}.json`             | `type`, `id`, `action`, `videoIds`                | nothing                                                  |
+| `watchState`   | `/watch_state/push/…`, `/watch_state/pull.json` | see [Watch state](#watch-state)                   |                                                          |
 
-Paths and extras are decoded once, in the right order: an id holding `:` or `/` and a search holding `&` all arrive intact. Extras are parsed: `skip` and `videoSize` are numbers, and a bad value is a 400 before your handler runs. `rawExtra` keeps every value as a `URLSearchParams`, for a catalog that lets several options be picked.
+Paths and extras are decoded once, in the right order: an id holding `:` or `/` and a search holding `&` all arrive intact. Extras are parsed: `skip` and `videoSize` are numbers, a guide's `ids` is a list, and a bad value is a 400 before your handler runs. `rawExtra` keeps every value as a `URLSearchParams`, for a catalog that lets several options be picked.
 
 Answers can carry cache hints, `cacheMaxAge`, `staleRevalidate` and `staleError` (seconds), which become a `Cache-Control` header. Any resource can answer `{ redirect: url }` for a 307.
 

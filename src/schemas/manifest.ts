@@ -25,7 +25,7 @@ export const ManifestResourceSchema = z.union([
 ]);
 
 export type ExtraName =
-  'search' | 'genre' | 'skip' | 'date' | 'similar' | (string & {});
+  'search' | 'genre' | 'skip' | 'date' | 'similar' | 'ids' | (string & {});
 
 export const ManifestExtraSchema = z.object({
   name: z.string().min(1) as unknown as z.ZodType<ExtraName, ExtraName>,
@@ -58,6 +58,8 @@ export const ManifestBehaviorHintsSchema = z.object({
   configurationRequired: z.boolean().optional(),
   /** A `tv` catalog with the `date` extra is a programme guide. */
   epgProvider: z.boolean().optional(),
+  /** The longest of the channels' `catchupDays`: how far back the guide goes. */
+  catchupDays: z.number().min(0).optional(),
 });
 
 export const WatchStateManifestSchema = z.object({

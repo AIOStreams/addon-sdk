@@ -16,6 +16,11 @@ export const CatalogExtraSchema = z.looseObject({
   date: z.string().optional(),
   /** The id of the title to find titles like. */
   similar: z.string().optional(),
+  /** The channels a guide is asked for, whatever page they are on. */
+  ids: z
+    .string()
+    .optional()
+    .transform((ids) => ids?.split(',').filter(Boolean)),
 });
 
 export const SubtitlesExtraSchema = z.looseObject({
@@ -66,9 +71,15 @@ export const CacheHintsSchema = z.object({
 
 export type CacheHints = z.input<typeof CacheHintsSchema>;
 
-export const CatalogResponseSchema = CacheHintsSchema.extend({
-  metas: z.array(MetaPreviewSchema),
-});
+export const CatalogResponseSchema = z.union([
+  CacheHintsSchema.extend({
+    metas: z.array(MetaPreviewSchema),
+  }),
+  CacheHintsSchema.extend({
+    /** A guide's answer for a `date`, as clients drop programmes from `metas`. */
+    metasDetailed: z.array(MetaSchema),
+  }),
+]);
 export const MetaResponseSchema = CacheHintsSchema.extend({
   meta: MetaSchema,
 });

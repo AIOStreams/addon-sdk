@@ -89,6 +89,8 @@ export const MetaBehaviorHintsSchema = z.object({
   featuredVideoId: z.string().nullish(),
   hasScheduledVideos: z.boolean().nullish(),
   isLive: z.boolean().nullish(),
+  /** How many days a channel's programmes play from their start once aired. */
+  catchupDays: z.number().min(0).nullish(),
 });
 
 const ImageSchema = z.union([UrlSchema, z.literal('')]);
@@ -128,6 +130,8 @@ export const CatalogEntrySchema = z.object({
   director: z.array(z.string()).nullish(),
   cast: z.array(z.string()).nullish(),
 
+  /** On a channel; without one, channels are numbered in list order. */
+  channelNumber: TextOrNumberSchema.nullish(),
   ids: ProviderIdsSchema.nullish(),
   /** The wide card on Continue Watching, Next Up and home rows. */
   landscapePoster: z.string().nullish(),
