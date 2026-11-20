@@ -80,6 +80,8 @@ export const CollectionSourceSchema = z.object({
   genre: z.string().nullish(),
   /** Another addon's manifest id or URL; omit it for your own. */
   addonId: z.string().nullish(),
+  /** The source's row or tab name; the catalog's own when absent. */
+  name: z.string().nullish(),
 });
 
 export const MetaBehaviorHintsSchema = z.object({
@@ -131,6 +133,8 @@ export const CatalogEntrySchema = z.object({
   landscapePoster: z.string().nullish(),
   /** A GIF, animated WebP or APNG played over the poster while its card has focus. */
   animatedPoster: z.string().nullish(),
+  /** An MP4 or WebM played muted and looping across a collection's page. */
+  backgroundVideo: z.string().nullish(),
   originalTitle: z.string().nullish(),
   tagline: z.string().nullish(),
   people: z.array(PersonSchema).nullish(),
@@ -164,6 +168,14 @@ export const MetaPreviewSchema = CatalogEntrySchema.extend({
     .object({
       items: z.array(CatalogEntrySchema).nullish(),
       sources: z.array(CollectionSourceSchema).nullish(),
+      /** `alternating` takes 20 titles from a source at a time. */
+      merge: z.enum(['sequential', 'interleaved', 'alternating']).nullish(),
+      /** Shuffles the titles within each page a client is sent. */
+      shuffle: z.boolean().nullish(),
+      /** In the AIOStreams apps, a tab per source after an All tab, or a row per source. */
+      layout: z.enum(['tabs', 'rows']).nullish(),
+      /** `false` leaves out the All tab. */
+      showAll: z.boolean().nullish(),
     })
     .nullish(),
   /** A `person`'s filmography, best known first. */
